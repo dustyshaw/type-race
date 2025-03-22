@@ -63,6 +63,15 @@ h1:focus {
     background-color: #1f1f1f !important;
 }
 
+/* Fonts */
+
+
+.jacquard-24-regular {
+    font-family: "Jacquard 24", system-ui;
+    font-weight: 400;
+    font-style: normal;
+}
+
 
 
 

@@ -19,6 +19,7 @@ var app = builder.Build();
 
 app.UseResponseCompression();
 app.MapHub<TypeHub>("/typehub");
+app.MapHub<LobbyHub>("/lobbyhub");
 
 if (!app.Environment.IsDevelopment())
 {

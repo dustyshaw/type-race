@@ -39,6 +39,16 @@
 
 
         await hubConnection.StartAsync();
+
+        await AskForLobbies();
+    }
+
+    private async Task AskForLobbies()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("AskForLobbies");
+        }
     }
 
     private async Task Send(Guid requestedLobbyId)

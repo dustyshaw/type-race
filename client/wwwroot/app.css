@@ -59,6 +59,10 @@ h1:focus {
     text-align: start;
 }
 
+.bg-black {
+    background-color: #1f1f1f !important;
+}
+
 
 
 

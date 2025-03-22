@@ -3,9 +3,11 @@
 
 <h3>Lobby Details</h3>
 
-<p>Welcome to the lobby! Lobby ID: @LobbyId</p>
+<div class="container-md">
+    <p>Welcome to the lobby! Lobby ID: @LobbyId</p>
 
-<client.Components.IndivComponents.SimpleTypeBoard />
+    <client.Components.IndivComponents.SimpleTypeBoard />
+</div>
 
 @code {
     [Parameter] public Guid LobbyId { get; set; }

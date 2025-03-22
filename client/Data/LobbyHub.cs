@@ -7,12 +7,18 @@ namespace client.Data;
 public class LobbyHub : Hub
 {
     private static readonly ConcurrentDictionary<Guid, Lobby> ActiveLobbies = new();
+
+    public async Task AskForLobbies()
+    {
+        var lobbies = ActiveLobbies.Values.Select(l => new UpdatedLobbiesMessage(l.LobbyId, l.Name, l.ConnectedPlayers)).ToList();
+        await Clients.Caller.SendAsync("ReceiveUpdatedLobbies", lobbies);
+    }
+
     public async Task CreateLobby(CreateLobbyRequest request)
     {
         ActiveLobbies.TryAdd(request.LobbyId, new Lobby(request.LobbyId, request.LobbyName));
         await BroadcastLobbies();
     }
-
 
     public async Task JoinLobby(JoinLobbyRequest request)
     {

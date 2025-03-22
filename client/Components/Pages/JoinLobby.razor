@@ -3,10 +3,10 @@
 @inject NavigationManager NavigationManager;
 
 <h3>Join Lobby</h3>
-
+<p>@message</p>
 @foreach (var l in mylobbies)
 {
-    <p @onclick="() => Send(l.LobbyId)">@l.LobbyName</p>
+    <p @onclick="() => Send(l.LobbyId)" class="text-bg-primary link-underline" role="button">@l.LobbyName - @l.Players.Count().ToString() Players</p>
 }
 
 
@@ -14,6 +14,8 @@
     private HubConnection? hubConnection;
     private List<UpdatedLobbiesMessage> mylobbies = [];
     private string LobbyName = "";
+
+    private string message = "not joined";
 
     private Guid playerId = Guid.NewGuid();
 
@@ -29,6 +31,13 @@
             InvokeAsync(StateHasChanged);
         });
 
+        hubConnection.On<Guid, string>("SuccessfullyJoinedLobby", (lobbyId, lobbyName) =>
+        {
+            message = $"Joined Lobby! {lobbyId} - {lobbyName}";
+            NavigationManager.NavigateTo($"/lobby/{lobbyId}");
+        });
+
+
         await hubConnection.StartAsync();
     }
 
@@ -36,7 +45,11 @@
     {
         if (hubConnection is not null)
         {
-            await hubConnection.SendAsync("JoinLobby", new JoinLobbyRequest() { LobbyId = requestedLobbyId, PlayerId = playerId });
+            await hubConnection.SendAsync("JoinLobby", new JoinLobbyRequest
+                {
+                    LobbyId = requestedLobbyId,
+                    PlayerId = playerId
+                });
         }
     }
 

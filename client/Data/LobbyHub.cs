@@ -13,13 +13,8 @@ public class LobbyHub : Hub
         await BroadcastLobbies();
     }
 
-    private async Task BroadcastLobbies()
-    {
-        var lobbies = ActiveLobbies.Values.Select(l => new UpdatedLobbiesMessage(l.LobbyId, l.Name, l.ConnectedPlayers)).ToList();
-        await Clients.All.SendAsync("ReceiveUpdatedLobbies", lobbies);
-    }
 
-    private async Task JoinLobby(JoinLobbyRequest request)
+    public async Task JoinLobby(JoinLobbyRequest request)
     {
         if (ActiveLobbies.TryGetValue(request.LobbyId, out var requestedLobby))
         {
@@ -34,6 +29,11 @@ public class LobbyHub : Hub
         {
             await Clients.Caller.SendAsync("LobbyNotFound", request.LobbyId);
         }
+    }
+    private async Task BroadcastLobbies()
+    {
+        var lobbies = ActiveLobbies.Values.Select(l => new UpdatedLobbiesMessage(l.LobbyId, l.Name, l.ConnectedPlayers)).ToList();
+        await Clients.All.SendAsync("ReceiveUpdatedLobbies", lobbies);
     }
 }
 

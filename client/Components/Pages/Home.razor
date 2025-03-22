@@ -1,36 +1,65 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
 @using client.Components.IndivComponents
+@using client.Data
 @rendermode InteractiveServer
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager;
 
 <PageTitle>Clash of Keys</PageTitle>
 
 <h1 class="jacquard-24-regular">Clash of Keys</h1>
-<div class="container-sm bg-light text-black">
-    <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
-    <small class="text-center text-secondary font-monospace">Select a player to Joust</small>
 
-    <p class="font-monospace bg-body-tertiary">USR234 - 3 wins, 2 defeats</p>
-    <p class="font-monospace bg-body-tertiary">BestJouster25 - 3 wins, 2 defeats</p>
-
-    <h2 class="jacquard-24-regular text-center">Currently Clashing</h2>
-    <p class="text-center text-secondary">Players currently jousting</p>
-    <p class="font-monospace">User971 vs User762</p>
-
-    @* <div class="row"> *@
-    @*     <div class="col-md-6"> *@
-    @*         <JoinLobby /> *@
-    @*     </div> *@
-    @*     <div class="col-md-6"> *@
-    @*         <CreateLobby /> *@
-    @*     </div> *@
-    @* </div> *@
-</div>
-
-
-
+@if (!joined)
+{
+    <input @bind-value="newPlayerName" />
+    <button @onclick="Send" class="btn-primary">Join</button>
+}
+else
+{
+    <TheList Players="allPlayers" />
+}
 
 @code {
+    private string newPlayerName = "";
+    private HubConnection? hubConnection;
+    private List<Player> allPlayers = new List<Player>();
 
+    private bool joined = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/playerhub"))
+            .Build();
+
+        hubConnection.On<UpdatedPlayersListMessage>("BroadcastPlayers", (updatedPlayersList) =>
+        {
+            allPlayers = updatedPlayersList.UpdatedPlayers;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+
+        await AskForPlayers();
+    }
+
+    private async Task AskForPlayers()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("GetPlayers");
+        }
+    }
+
+    private async Task Send()
+    {
+        if (hubConnection is not null && !string.IsNullOrWhiteSpace(newPlayerName))
+        {
+            await hubConnection.SendAsync("ConnectPlayer", newPlayerName);
+        }
+        joined = true;
+    }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
 }

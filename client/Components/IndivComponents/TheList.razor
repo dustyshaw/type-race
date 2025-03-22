@@ -1,0 +1,43 @@
+﻿@using Microsoft.AspNetCore.SignalR
+@using client.Data
+@inject NavigationManager Navigation
+@inject IHubContext<GameHub> GameHubContext
+
+
+<div class="container-sm bg-light text-black">
+    <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
+    <small class="text-center text-secondary font-monospace mb-5">Select a player to Joust</small>
+
+    @foreach (var p in Players)
+    {
+        <p class="font-monospace bg-body-tertiary">@p.Name
+
+            <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
+           </p>
+    }
+
+    <hr />
+    <h2 class="jacquard-24-regular text-center mt-4">Currently Clashing</h2>
+    <p class="text-center text-secondary">Players currently jousting</p>
+    <p>none</p>
+
+</div>
+
+@code {
+    [Parameter]
+    public List<Player> Players { get; set; } = new();
+
+
+    private async Task OnJoustClick(Player player)
+    {
+        var opponent = Players.FirstOrDefault(p => p != player);
+
+        if (opponent != null)
+        {
+            await GameHubContext.Clients.User(player.Name).SendAsync("StartGame", player, opponent);
+            await GameHubContext.Clients.User(opponent.Name).SendAsync("StartGame", player, opponent);
+
+            Navigation.NavigateTo("/game");
+        }
+    }
+}

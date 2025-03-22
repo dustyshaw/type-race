@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.SignalR;
 
-namespace client.Data
+namespace client.Data;
+
+public class TypeHub : Hub
 {
-    public class TypeHub : Hub
+    public async Task SendMessage(string user, string message)
     {
-        public async Task SendMessage(string user, string message)
-        {
-            await Clients.All.SendAsync("ReceiveMessage", user, message);
-        }
+        await Clients.All.SendAsync("ReceiveMessage", user, message);
     }
 }

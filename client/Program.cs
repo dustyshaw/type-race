@@ -20,6 +20,8 @@ var app = builder.Build();
 app.UseResponseCompression();
 app.MapHub<TypeHub>("/typehub");
 app.MapHub<LobbyHub>("/lobbyhub");
+app.MapHub<PlayerHub>("/playerhub");
+app.MapHub<GameHub>("/gamehub");  // Register your GameHub with a route
 
 if (!app.Environment.IsDevelopment())
 {

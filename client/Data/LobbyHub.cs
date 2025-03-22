@@ -22,19 +22,19 @@ public class LobbyHub : Hub
 
     public async Task JoinLobby(JoinLobbyRequest request)
     {
-        if (ActiveLobbies.TryGetValue(request.LobbyId, out var requestedLobby))
-        {
-            var player = new Player(request.PlayerId, "Player " + request.PlayerId);
-            requestedLobby.AddPlayer(player);
+        //if (ActiveLobbies.TryGetValue(request.LobbyId, out var requestedLobby))
+        //{
+        //    var player = new Player(request.PlayerId, "Player " + request.PlayerId);
+        //    requestedLobby.AddPlayer(player);
 
-            await Clients.Caller.SendAsync("SuccessfullyJoinedLobby", requestedLobby.LobbyId, requestedLobby.Name);
+        //    await Clients.Caller.SendAsync("SuccessfullyJoinedLobby", requestedLobby.LobbyId, requestedLobby.Name);
 
-            await BroadcastLobbies();
-        }
-        else
-        {
-            await Clients.Caller.SendAsync("LobbyNotFound", request.LobbyId);
-        }
+        //    await BroadcastLobbies();
+        //}
+        //else
+        //{
+        //    await Clients.Caller.SendAsync("LobbyNotFound", request.LobbyId);
+        //}
     }
     private async Task BroadcastLobbies()
     {
@@ -90,14 +90,14 @@ public class Lobby
     }
 }
 
-public class Player
-{
-    public Guid PlayerId { get; set; }
-    public string Name { get; set; }
+//public class Player
+//{
+//    public Guid PlayerId { get; set; }
+//    public string Name { get; set; }
 
-    public Player(Guid NewLobbyId, string NewLobbyName)
-    {
-        this.PlayerId = NewLobbyId;
-        this.Name = NewLobbyName;
-    }
-}
+//    public Player(string playerName)
+//    {
+//        this.PlayerId = Guid.NewGuid();
+//        this.Name = playerName;
+//    }
+//}

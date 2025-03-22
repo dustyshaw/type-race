@@ -1,0 +1,38 @@
+﻿@page "/game"
+@using Microsoft.AspNetCore.SignalR.Client
+@using client.Data
+
+@inject NavigationManager NavigationManager;
+
+
+<h3>Game Page</h3>
+<p>Game is starting...</p>
+
+@* <p>@Player1.Name</p> *@
+
+@code {
+    private Player Player1 { get; set; }
+    private Player Player2 { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var connection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        connection.On<Player, Player>("GameStarted", (player1, player2) =>
+        {
+            Player1 = player1;
+            Player2 = player2;
+            StateHasChanged(); 
+        });
+
+        await connection.StartAsync();
+    }
+
+    // public async ValueTask DisposeAsync()
+    // {
+    //     Clean up any resources if needed
+    //     await connection.DisposeAsync();
+    // }
+}

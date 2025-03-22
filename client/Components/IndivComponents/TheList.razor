@@ -1,30 +1,43 @@
 ﻿@using Microsoft.AspNetCore.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
 @using client.Data
 @inject NavigationManager Navigation
 @inject IHubContext<GameHub> GameHubContext
+@inject IHubContext<PlayerHub> PlayerHubContext
 
 
 <p><small>Connected as: @MyPlayerName</small></p>
-<div class="container-sm bg-light text-black">
-    <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
-    <small class="text-center text-secondary font-monospace mb-5">Select a player to Joust</small>
-    @foreach (var p in Players)
-    {
-        @if (p.Name != MyPlayerName)
+
+@if (SomeoneRequestedADual)
+{
+    <div>
+        Play with opponent?
+    </div>
+}
+else
+{
+    <div class="container-sm bg-light text-black">
+        <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
+        <small class="text-center text-secondary font-monospace mb-5">Select a player to Joust</small>
+        @foreach (var p in Players)
         {
-            <p class="font-monospace bg-body-tertiary">
-                @p.Name
-                <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
-            </p>
+            @if (p.Name != MyPlayerName)
+            {
+                <p class="font-monospace bg-body-tertiary">
+                    @p.Name
+                    <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
+                </p>
+            }
         }
-    }
 
-    <hr />
-    <h2 class="jacquard-24-regular text-center mt-4">Currently Clashing</h2>
-    <p class="text-center text-secondary">Players currently jousting</p>
-    <p>none</p>
+        <hr />
+        <h2 class="jacquard-24-regular text-center mt-4">Currently Clashing</h2>
+        <p class="text-center text-secondary">Players currently jousting</p>
+        <p>none</p>
 
-</div>
+    </div>
+}
+
 
 @code {
     [Parameter]
@@ -33,17 +46,53 @@
     [Parameter]
     public string MyPlayerName { get; set; } = string.Empty;
 
+    private HubConnection? hubConnection;
+
+    private bool SomeoneRequestedADual = false;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
+            .Build();
+
+        hubConnection.On<UpdatedPlayersListMessage>("ReceiveDualRequest", (updatedPlayersList) =>
+        {
+            SomeoneRequestedADual = true;
+            InvokeAsync(StateHasChanged);
+        });
+
+
+        await hubConnection.StartAsync();
+    }
+
 
     private async Task OnJoustClick(Player player)
     {
         var opponent = Players.FirstOrDefault(p => p != player);
+
+        hubConnection = new HubConnectionBuilder()
+           .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
+           .Build();
 
         if (opponent != null)
         {
             await GameHubContext.Clients.User(player.Name).SendAsync("StartGame", player, opponent);
             await GameHubContext.Clients.User(opponent.Name).SendAsync("StartGame", player, opponent);
 
-            Navigation.NavigateTo("/game");
+            //await PlayerHubContext.Send("PlayerWantsToJoinOtherPlayer");
+            //Navigation.NavigateTo("/game");
+        }
+
+
+        if (hubConnection is not null && opponent is not null)
+        {
+            await hubConnection.SendAsync("PlayerRequestDual", player.PlayerId, opponent.PlayerId);
         }
     }
+
+    public bool IsConnected =>
+        hubConnection?.State == HubConnectionState.Connected;
 }

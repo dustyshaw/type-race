@@ -1,18 +1,21 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.SignalR.Client
+@using System.Text.Json
 @using client.Components.IndivComponents
 @using client.Data
+@using static System.Net.WebRequestMethods
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager;
+@inject HttpClient Http;
 
 <PageTitle>Clash of Keys</PageTitle>
 
-<h1 class="jacquard-24-regular">Clash of Keys</h1>
+<h1 class="jacquard-24-regular" style="font-size: 32px;">Clash of Keys</h1>
 
 @if (!joined)
 {
-    <input @bind-value="newPlayerName" />
-    <button @onclick="Send" class="btn-primary">Join</button>
+    <input @bind-value="newPlayerName" class="bg-black text-white text-xxl-center font-monospace" type="text" style="font-size: 30px;" />
+    <button @onclick="Send" class="btn-outline-secondary font-monospace">Join</button>
 }
 else
 {
@@ -26,8 +29,35 @@ else
 
     private bool joined = false;
 
+
+    private List<string> namesList = new List<string>
+    {
+        "Lancelot",
+        "Bartholomew",
+        "Bertram",
+        "Thomas",
+        "William",
+        "Arthur",
+        "Guinevere",
+        "Roland",
+        "Gawain",
+        "Isolde",
+        "Merlin",
+        "Eleanor",
+        "Richard",
+        "Hector",
+        "Beatrix",
+        "Geoffrey",
+        "Alistair",
+        "Eustace",
+        "Vivienne",
+        "Reginald"
+    };
+
     protected override async Task OnInitializedAsync()
     {
+        newPlayerName = "sir" + namesList[Random.Shared.Next(namesList.Count)];
+
         hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/playerhub"))
             .Build();
@@ -37,6 +67,11 @@ else
             allPlayers = updatedPlayersList.UpdatedPlayers;
             InvokeAsync(StateHasChanged);
         });
+
+        // hubConnection.On<PlayerJoustRequest>("PlayerJoustRequest", () =>
+        // {
+
+        // });
 
         await hubConnection.StartAsync();
 
@@ -62,4 +97,10 @@ else
 
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
+
+    public class NamesJson
+    {
+        public List<string> Names { get; set; } = new();
+    }
+
 }

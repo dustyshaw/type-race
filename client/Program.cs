@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.ResponseCompression;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

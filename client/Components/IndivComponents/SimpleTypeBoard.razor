@@ -1,11 +1,11 @@
 ﻿@using Microsoft.AspNetCore.SignalR.Client
 @rendermode InteractiveServer
-@inject NavigationManager Navigation
+@inject NavigationManager NavigationManager
 
 <div class="game-container">
     <p>@((MarkupString)GetHighlightedText())</p>
     <p>
-        <input @oninput="OnUserInputChanged" class="typing-input" />
+        <input @oninput="OnUserInputChanged" class="typing-input bg-black" />
     </p>
     <p class="feedback">
         @if (CorrectCount == TotalCharacters)
@@ -22,8 +22,6 @@
 </div>
 
 
-
-
 @code {
     private HubConnection? hubConnection;
     private List<string> messages = [];
@@ -35,6 +33,19 @@
     private int CorrectCount = 0;
     private int TotalCharacters => TextToType.Length;
 
+    protected override async Task OnInitializedAsync()
+    {
+        var connection = new HubConnectionBuilder()
+            .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        connection.On<string>("GameTick", (player1) =>
+        {
+            StateHasChanged();
+        });
+
+        await connection.StartAsync();
+    }
 
     private string GetHighlightedText()
     {
@@ -51,10 +62,18 @@
         }).Aggregate((current, next) => current + next));
     }
 
-
     private void OnUserInputChanged(ChangeEventArgs e)
     {
         UserInput = e.Value?.ToString() ?? string.Empty;
         CorrectCount = UserInput.Zip(TextToType, (typedChar, originalChar) => typedChar == originalChar).Count(x => x);
+
+        if (hubConnection is not null)
+        {
+            hubConnection.SendAsync("PlayerTypeChange");
+        }
     }
+
+    public bool IsConnected =>
+    hubConnection?.State == HubConnectionState.Connected;
+
 }

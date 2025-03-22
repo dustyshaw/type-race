@@ -10,9 +10,47 @@
 
 @* <p>@Player1.Name</p> *@
 
+<div class="row">
+    <div class="progress">
+        <div class="progress-bar" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+</div>
+
+<div class="game-container">
+    <p>@((MarkupString)GetHighlightedText())</p>
+    <p>
+        <input @oninput="OnUserInputChanged" class="typing-input bg-black" />
+    </p>
+    <p class="feedback">
+        @if (CorrectCount == TotalCharacters)
+        {
+            <span class="success">You completed the game!</span>
+        }
+        else
+        {
+            <span class="progress">
+                Correct: @CorrectCount / @TotalCharacters
+            </span>
+        }
+    </p>
+</div>
+
+
+
+@* <client.Components.IndivComponents.SimpleTypeBoard /> *@
+
 @code {
     private Player Player1 { get; set; }
     private Player Player2 { get; set; }
+
+
+    private HubConnection? hubConnection;
+
+
+    private string TextToType = "The quick brown fox jumped over the lazy dog.";
+    private string UserInput = "";
+    private int CorrectCount = 0;
+    private int TotalCharacters => TextToType.Length;
 
     protected override async Task OnInitializedAsync()
     {
@@ -24,15 +62,36 @@
         {
             Player1 = player1;
             Player2 = player2;
-            StateHasChanged(); 
+            StateHasChanged();
         });
 
         await connection.StartAsync();
     }
 
-    // public async ValueTask DisposeAsync()
-    // {
-    //     Clean up any resources if needed
-    //     await connection.DisposeAsync();
-    // }
+
+    private string GetHighlightedText()
+    {
+        var text = TextToType.ToCharArray();
+        var typedChars = UserInput.ToCharArray();
+
+        return new string(text.Select((c, i) =>
+        {
+            if (i < typedChars.Length && typedChars[i] == c)
+            {
+                return ("<span class=\"highlighted\">" + c + "</span>");
+            }
+            return c.ToString();
+        }).Aggregate((current, next) => current + next));
+    }
+
+    private void OnUserInputChanged(ChangeEventArgs e)
+    {
+        UserInput = e.Value?.ToString() ?? string.Empty;
+        CorrectCount = UserInput.Zip(TextToType, (typedChar, originalChar) => typedChar == originalChar).Count(x => x);
+
+        if (hubConnection is not null)
+        {
+            hubConnection.SendAsync("PlayerTypeChange");
+        }
+    }
 }

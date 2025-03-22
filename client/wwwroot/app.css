@@ -58,3 +58,38 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+
+
+
+
+.game-container {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 20px;
+}
+
+.text-to-type {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.typing-input {
+    font-size: 18px;
+    padding: 5px;
+    width: 300px;
+}
+
+.highlighted {
+    background-color: darkgray;
+    color: white;
+}
+
+.success {
+    color: green;
+    font-weight: bold;
+}
+
+.progress {
+    font-size: 16px;
+    color: orange;
+}

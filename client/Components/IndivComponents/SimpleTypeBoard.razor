@@ -1,0 +1,60 @@
+﻿@using Microsoft.AspNetCore.SignalR.Client
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+
+<div class="game-container">
+    <p>@((MarkupString)GetHighlightedText())</p>
+    <p>
+        <input @oninput="OnUserInputChanged" class="typing-input" />
+    </p>
+    <p class="feedback">
+        @if (CorrectCount == TotalCharacters)
+        {
+            <span class="success">You completed the game!</span>
+        }
+        else
+        {
+            <span class="progress">
+                Correct: @CorrectCount / @TotalCharacters
+            </span>
+        }
+    </p>
+</div>
+
+
+
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = [];
+    private string? userInput;
+    private string? messageInput;
+
+    private string TextToType = "The quick brown fox jumped over the lazy dog.";
+    private string UserInput = "";
+    private int CorrectCount = 0;
+    private int TotalCharacters => TextToType.Length;
+
+
+    private string GetHighlightedText()
+    {
+        var text = TextToType.ToCharArray();
+        var typedChars = UserInput.ToCharArray();
+
+        return new string(text.Select((c, i) =>
+        {
+            if (i < typedChars.Length && typedChars[i] == c)
+            {
+                return ("<span class=\"highlighted\">" + c + "</span>");
+            }
+            return c.ToString();
+        }).Aggregate((current, next) => current + next));
+    }
+
+
+    private void OnUserInputChanged(ChangeEventArgs e)
+    {
+        UserInput = e.Value?.ToString() ?? string.Empty;
+        CorrectCount = UserInput.Zip(TextToType, (typedChar, originalChar) => typedChar == originalChar).Count(x => x);
+    }
+}

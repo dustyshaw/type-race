@@ -4,16 +4,19 @@
 @inject IHubContext<GameHub> GameHubContext
 
 
+<p><small>Connected as: @MyPlayerName</small></p>
 <div class="container-sm bg-light text-black">
     <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
     <small class="text-center text-secondary font-monospace mb-5">Select a player to Joust</small>
-
     @foreach (var p in Players)
     {
-        <p class="font-monospace bg-body-tertiary">@p.Name
-
-            <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
-           </p>
+        @if (p.Name != MyPlayerName)
+        {
+            <p class="font-monospace bg-body-tertiary">
+                @p.Name
+                <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
+            </p>
+        }
     }
 
     <hr />
@@ -26,6 +29,9 @@
 @code {
     [Parameter]
     public List<Player> Players { get; set; } = new();
+
+    [Parameter]
+    public string MyPlayerName { get; set; } = string.Empty;
 
 
     private async Task OnJoustClick(Player player)

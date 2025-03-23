@@ -12,6 +12,7 @@
 {
     <div>
         Play with opponent?
+        <button>Yes</button>
     </div>
 }
 else
@@ -58,11 +59,13 @@ else
             .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
             .Build();
 
-        hubConnection.On<UpdatedPlayersListMessage>("ReceiveDualRequest", (updatedPlayersList) =>
-        {
-            SomeoneRequestedADual = true;
-            InvokeAsync(StateHasChanged);
-        });
+        hubConnection.On<string>("SendRequestToOpponent", (message) =>
+    {
+       // if (message == this.playerId)
+        // This should now match the event name sent from the server
+        SomeoneRequestedADual = true;
+        InvokeAsync(StateHasChanged);
+    });
 
 
         await hubConnection.StartAsync();
@@ -71,25 +74,12 @@ else
 
     private async Task OnJoustClick(Player player)
     {
-        var opponent = Players.FirstOrDefault(p => p != player);
-
-        hubConnection = new HubConnectionBuilder()
-           .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
-           .Build();
-
-        if (opponent != null)
-        {
-            await GameHubContext.Clients.User(player.Name).SendAsync("StartGame", player, opponent);
-            await GameHubContext.Clients.User(opponent.Name).SendAsync("StartGame", player, opponent);
-
-            //await PlayerHubContext.Send("PlayerWantsToJoinOtherPlayer");
-            //Navigation.NavigateTo("/game");
-        }
+        var opponent = Players.FirstOrDefault(p => p.PlayerId == player.PlayerId);
 
 
         if (hubConnection is not null && opponent is not null)
         {
-            await hubConnection.SendAsync("PlayerRequestDual", player.PlayerId, opponent.PlayerId);
+            await hubConnection.SendAsync("RecieveDualRequest", player.PlayerId, opponent.PlayerId);
         }
     }
 

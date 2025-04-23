@@ -15,6 +15,12 @@
         <button>Yes</button>
     </div>
 }
+else if (WaitingForDualResponse)
+{
+    <div>
+        Waiting for response from opponent...
+    </div>
+}
 else
 {
     <div class="container-sm bg-light text-black">
@@ -50,25 +56,33 @@ else
     private HubConnection? hubConnection;
 
     private bool SomeoneRequestedADual = false;
+    private bool WaitingForDualResponse = false;
 
 
     protected override async Task OnInitializedAsync()
     {
-
         hubConnection = new HubConnectionBuilder()
             .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
             .Build();
 
+
         hubConnection.On<string>("SendRequestToOpponent", (message) =>
-    {
-       // if (message == this.playerId)
-        // This should now match the event name sent from the server
-        SomeoneRequestedADual = true;
-        InvokeAsync(StateHasChanged);
-    });
+        {
+            Console.WriteLine("TheList.razor recieved sendrequesttoopponent message!");
+            
+            SomeoneRequestedADual = true;
+            InvokeAsync(StateHasChanged);
+        });
+        hubConnection.On<Guid>("WaitingForOpponentConfirmation", (message) =>
+        {
+            WaitingForDualResponse = true;
+            InvokeAsync(StateHasChanged);
+        });
 
 
         await hubConnection.StartAsync();
+        Console.WriteLine(MyPlayerName + " ConnectionId is: " + hubConnection.ConnectionId.ToString());
+        // How do I send this connectionId to be stored in my playerConnections Dictionary?
     }
 
 

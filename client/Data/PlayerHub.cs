@@ -1,18 +1,21 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using client.Data;
+using Microsoft.AspNetCore.SignalR;
 using System.Collections.Concurrent;
 
-namespace client.Data;
 
 public class PlayerHub : Hub
 {
     private static readonly ConcurrentDictionary<Guid, Player> AllPlayers = new();
     private static Dictionary<Guid, string> playerConnections = new();
+    private string groupName = "PlayerGroup";
 
     public async Task ConnectPlayer(string playername)
     {
         var player = new Player(playername, Context.ConnectionId);
+
         AllPlayers.TryAdd(player.PlayerId, player);
         playerConnections[player.PlayerId] = player.ConnectionId;
+
         Console.WriteLine($"Player {player.Name} connected with ConnectionId: {player.ConnectionId}");
         await BroadcastPlayers();
     }
@@ -29,30 +32,35 @@ public class PlayerHub : Hub
         await Clients.Caller.SendAsync("UpdatedPlayerList", new UpdatedPlayersListMessage(players));
     }
 
-    public async Task RecieveDualRequest(Guid playerId, Guid opponentId)
+    public async Task RecieveDualRequest(Guid fromId, Guid toId)
     {
-        if (!AllPlayers.ContainsKey(playerId) || !AllPlayers.ContainsKey(opponentId))
+        if (!AllPlayers.ContainsKey(fromId) || !AllPlayers.ContainsKey(toId))
         {
             await Clients.Caller.SendAsync("NoPlayerFound");
             return;
         }
 
-        if (!AllPlayers.TryGetValue(opponentId, out Player? opponent))
+        if (!AllPlayers.TryGetValue(toId, out Player? toPlayer))
         {
             await Clients.Caller.SendAsync("NoOpponentFound");
             return;
         }
 
-        // Log to verify the opponent's ConnectionId
-        Console.WriteLine($"Opponent found: {opponent.Name} with ConnectionId {opponent.ConnectionId}");
+        // connection id and player name are correct.
+        Console.WriteLine($"Opponent found: {toPlayer.Name} with ConnectionId {toPlayer.ConnectionId}");
 
-        if (opponent is not null)
+        if (toPlayer is not null)
         {
-            // Send the message to the correct opponent's client using their ConnectionId
+            await Clients.Caller.SendAsync("WaitingForOpponentConfirmation", toPlayer.PlayerId);
 
-            await Clients.All.SendAsync("SendRequestToOpponent", opponent.PlayerId);
+            // These logs look correct. I am sending it to the correct person
+            Console.WriteLine("Sending a message to connectionId " + toPlayer.ConnectionId);
+            await Clients.User(AllPlayers[fromId].ConnectionId).SendAsync("SendRequestToOpponent", "yay");
+            await Clients.Client(AllPlayers[fromId].ConnectionId).SendAsync("SendRequestToOpponent", "yay");
         }
+
     }
+    
 }
 
 public class UpdatedPlayersListMessage
@@ -62,21 +70,5 @@ public class UpdatedPlayersListMessage
     public UpdatedPlayersListMessage(List<Player> updatedPlayers)
     {
         UpdatedPlayers = updatedPlayers;
-    }
-}
-
-public class Player
-{
-    public Guid PlayerId { get; set; }
-    public string Name { get; set; }
-    public PlayerStateEnum status { get; set; }
-    public string ConnectionId { get; set; }
-
-    public Player(string name, string connectionId)
-    {
-        Name = name;
-        status = PlayerStateEnum.WaitingToJoin;
-        PlayerId = Guid.NewGuid();
-        ConnectionId = connectionId;
     }
 }

@@ -7,11 +7,12 @@
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager;
 @inject HttpClient Http;
+@inject HubConnection hubConnection;
 
 <PageTitle>Clash of Keys</PageTitle>
 
 <h1 class="jacquard-24-regular" style="font-size: 32px;">Clash of Keys</h1>
-
+<p>@myConnectionId</p>
 @if (!joined)
 {
     <input @bind-value="newPlayerName" class="bg-black text-white text-xxl-center font-monospace" type="text" style="font-size: 30px;" />
@@ -19,14 +20,15 @@
 }
 else
 {
-    <TheList Players="allPlayers" MyPlayerName=@newPlayerName />
+    <TheList Players="allPlayers" MyPlayerName=@newPlayerName playerHubConnection="hubConnection"/>
 }
 
 @code {
     private string newPlayerName = "";
-    private HubConnection? hubConnection;
+    //private HubConnection? hubConnection;
     private List<Player> allPlayers = new List<Player>();
 
+    private string myConnectionId { get; set; } = "";
     private bool joined = false;
 
 
@@ -58,9 +60,9 @@ else
     {
         newPlayerName = "sir" + namesList[Random.Shared.Next(namesList.Count)];
 
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(NavigationManager.ToAbsoluteUri("/playerhub"))
-            .Build();
+        // hubConnection = new HubConnectionBuilder()
+        //     .WithUrl(NavigationManager.ToAbsoluteUri("/playerhub"))
+        //     .Build();
 
         hubConnection.On<UpdatedPlayersListMessage>("BroadcastPlayers", (updatedPlayersList) =>
         {
@@ -75,6 +77,8 @@ else
 
         await hubConnection.StartAsync();
 
+        myConnectionId = hubConnection.ConnectionId.ToString();
+
         await AskForPlayers();
     }
 
@@ -88,9 +92,11 @@ else
 
     private async Task Send()
     {
-        if (hubConnection is not null && !string.IsNullOrWhiteSpace(newPlayerName))
+
+        if (hubConnection is not null && !string.IsNullOrWhiteSpace(newPlayerName) && hubConnection.ConnectionId is not null)
         {
-            await hubConnection.SendAsync("ConnectPlayer", newPlayerName);
+            var request = new ConnectToAllPlayersRequest(newPlayerName, hubConnection.ConnectionId);
+            await hubConnection.SendAsync("ConnectPlayer", request);
         }
         joined = true;
     }

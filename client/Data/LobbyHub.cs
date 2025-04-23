@@ -43,6 +43,16 @@ public class LobbyHub : Hub
     }
 }
 
+public record ConnectToAllPlayersRequest
+{
+    public string PlayerName { get; set; }
+    public string ConnectionId { get; set; }
+    public ConnectToAllPlayersRequest(string playerName, string connectionId)
+    {
+        PlayerName = playerName;
+        ConnectionId = connectionId;
+    }
+}
 
 // messages
 public class CreateLobbyRequest

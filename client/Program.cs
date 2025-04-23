@@ -1,6 +1,9 @@
 using client.Components;
 using client.Data;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.SignalR.Client;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +13,16 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddSignalR();
+
+builder.Services.AddScoped(sp =>
+{
+    var navMan = sp.GetRequiredService<NavigationManager>();
+    return new HubConnectionBuilder()
+        .WithUrl(navMan.ToAbsoluteUri("/playerhub"))
+        .WithAutomaticReconnect()
+        .Build();
+});
+
 builder.Services.AddResponseCompression(opts =>
 {
     opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(

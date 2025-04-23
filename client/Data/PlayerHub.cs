@@ -7,16 +7,17 @@ public class PlayerHub : Hub
 {
     private static readonly ConcurrentDictionary<Guid, Player> AllPlayers = new();
     private static Dictionary<Guid, string> playerConnections = new();
-    private string groupName = "PlayerGroup";
 
-    public async Task ConnectPlayer(string playername)
+    public async Task ConnectPlayer(ConnectToAllPlayersRequest request)
     {
-        var player = new Player(playername, Context.ConnectionId);
+        var playerName = request.PlayerName;
+        var connectionId = request.ConnectionId;
+        var player = new Player(playerName, connectionId);
 
         AllPlayers.TryAdd(player.PlayerId, player);
-        playerConnections[player.PlayerId] = player.ConnectionId;
+        playerConnections[player.PlayerId] = connectionId;
 
-        Console.WriteLine($"Player {player.Name} connected with ConnectionId: {player.ConnectionId}");
+        Console.WriteLine($"Player {playerName} connected with ConnectionId: {connectionId}");
         await BroadcastPlayers();
     }
 
@@ -55,8 +56,8 @@ public class PlayerHub : Hub
 
             // These logs look correct. I am sending it to the correct person
             Console.WriteLine("Sending a message to connectionId " + toPlayer.ConnectionId);
-            await Clients.User(AllPlayers[fromId].ConnectionId).SendAsync("SendRequestToOpponent", "yay");
-            await Clients.Client(AllPlayers[fromId].ConnectionId).SendAsync("SendRequestToOpponent", "yay");
+            await Clients.All.SendAsync("SendRequestToOpponent", toPlayer.ConnectionId);
+            //await Clients.Client(toPlayer.ConnectionId).SendAsync("SendRequestToOpponent", "yay");
         }
 
     }

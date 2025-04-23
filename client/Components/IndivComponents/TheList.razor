@@ -3,7 +3,8 @@
 @using client.Data
 @inject NavigationManager Navigation
 @inject IHubContext<GameHub> GameHubContext
-@inject IHubContext<PlayerHub> PlayerHubContext
+@* @inject IHubContext<PlayerHub> PlayerHubContext *@
+@* @inject HubConnection playerHubConnection; *@
 
 
 <p><small>Connected as: @MyPlayerName</small></p>
@@ -23,6 +24,7 @@ else if (WaitingForDualResponse)
 }
 else
 {
+    <p>@hubConnectionId</p>
     <div class="container-sm bg-light text-black">
         <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
         <small class="text-center text-secondary font-monospace mb-5">Select a player to Joust</small>
@@ -53,25 +55,32 @@ else
     [Parameter]
     public string MyPlayerName { get; set; } = string.Empty;
 
+    [Parameter]
+    public HubConnection playerHubConnection { get; set; }
+
     private HubConnection? hubConnection;
 
     private bool SomeoneRequestedADual = false;
     private bool WaitingForDualResponse = false;
 
+    private string hubConnectionId { get; set; } = "";
 
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
-            .Build();
-
+        // hubConnection = new HubConnectionBuilder()
+        //     .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
+        //     .Build();
+        hubConnection = playerHubConnection;
 
         hubConnection.On<string>("SendRequestToOpponent", (message) =>
         {
             Console.WriteLine("TheList.razor recieved sendrequesttoopponent message!");
-            
+            if (message == hubConnectionId)
+            {
+                
             SomeoneRequestedADual = true;
             InvokeAsync(StateHasChanged);
+            }
         });
         hubConnection.On<Guid>("WaitingForOpponentConfirmation", (message) =>
         {
@@ -80,9 +89,8 @@ else
         });
 
 
-        await hubConnection.StartAsync();
+        hubConnectionId = hubConnection.ConnectionId.ToString();
         Console.WriteLine(MyPlayerName + " ConnectionId is: " + hubConnection.ConnectionId.ToString());
-        // How do I send this connectionId to be stored in my playerConnections Dictionary?
     }
 
 

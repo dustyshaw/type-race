@@ -11,16 +11,30 @@
 
 <PageTitle>Clash of Keys</PageTitle>
 
-<h1 class="jacquard-24-regular" style="font-size: 32px;">Clash of Keys</h1>
-<p>@myConnectionId</p>
+<center>
+    <div class="d-flex flex-row justify-content-between" style="max-width: 900px">
+        <img src="/white-banner.png" style="width: 180px; height: auto;" class="img" />
+        <h1 class="jacquard-24-regular" style="font-size: 90px;">Clash of Keys</h1>
+        <img src="/blue-banner.png" style="width:180px; height: auto;" class="img" />
+    </div>
+</center>
+<hr />
 @if (!joined)
 {
-    <input @bind-value="newPlayerName" class="bg-black text-white text-xxl-center font-monospace" type="text" style="font-size: 30px;" />
-    <button @onclick="Send" class="btn-outline-secondary font-monospace">Join</button>
+    <center>
+        <div class="position-relative" style="width: 600px; height: 200px;">
+            <img src="/text-box.png" class="position-absolute top-0 start-0 w-100 h-100" style="object-fit: contain;" />
+            <input @bind-value="newPlayerName"
+                   type="text"
+                   class="bg-transparent text-black font-monospace position-absolute top-50 start-50 translate-middle text-center border-0"
+                   style="font-size: 30px; width: 90%; outline: none; box-shadow: none;" />
+        </div>
+        <button @onclick="Send" class="btn-outline-secondary font-monospace">Join</button>
+    </center>
 }
 else
 {
-    <TheList Players="allPlayers" MyPlayerName=@newPlayerName playerHubConnection="hubConnection"/>
+    <TheList Players="allPlayers" MyPlayerName=@newPlayerName playerHubConnection="hubConnection" />
 }
 
 @code {
@@ -57,7 +71,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        newPlayerName = "sir" + namesList[Random.Shared.Next(namesList.Count)];
+        newPlayerName = "sir_" + namesList[Random.Shared.Next(namesList.Count)];
 
         hubConnection.On<UpdatedPlayersListMessage>("BroadcastPlayers", (updatedPlayersList) =>
         {

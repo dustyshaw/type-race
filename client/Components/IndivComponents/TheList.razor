@@ -5,16 +5,17 @@
 @inject IHubContext<GameHub> GameHubContext
 
 
-<p><small>Connected as: @MyPlayerName</small></p>
-
+<p><small>Connected as: <strong>@MyPlayerName</strong></small></p>
+<hr />
 @if (SomeoneRequestedADual)
 {
-    <div>
-        Play with opponent? -
+    <div style="background-color: #4a4a4a; color: black;">
+        Joust with 
         @if (opponentPlayer is not null)
         {
-            @opponentPlayer.ConnectionId.ToString() // This is not the correct hub connection Id!!!
+            @opponentPlayer.Name
         }
+        ?
         <button @onclick="AcceptDuel">Yes</button>
     </div>
 }
@@ -26,7 +27,6 @@ else if (WaitingForDualResponse)
 }
 else
 {
-    <p>@hubConnectionId</p>
     <div class="container-sm bg-light text-black">
         <h2 class="jacquard-24-regular text-center m-0 p-0">The List</h2>
         <small class="text-center text-secondary font-monospace mb-5">Select a player to Joust</small>
@@ -111,7 +111,8 @@ else
             Console.WriteLine("GameStartedMessage Reciived: " + playerConnectionId);
             if (playerConnectionId == hubConnectionId)
             {
-                Navigation.NavigateTo("/game");
+                var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
+                Navigation.NavigateTo($"/game/{me.PlayerId}");
             }
         });
 
@@ -150,7 +151,7 @@ else
             var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
             await gamHubConnection.SendAsync("StartGameRequest", player1, player2);
 
-            Navigation.NavigateTo("/game");
+            Navigation.NavigateTo($"/game/{me.PlayerId}");
         }
         else
         {

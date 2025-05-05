@@ -1,5 +1,6 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    cursor: url('cursor3.png'), auto; 
 }
 
 a, .btn-link {

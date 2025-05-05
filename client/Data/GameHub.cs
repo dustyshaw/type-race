@@ -10,6 +10,9 @@ public class GameHub : Hub
     {
         Console.WriteLine("In the GameHub recieved StartGameRequest!! \nplayer1id: " + player1.ConnectionId + "\nplayer2id: " + player2.ConnectionId);
 
+        PlayerOne = player1;
+        PlayerTwo = player2;
+
         await Clients.All.SendAsync("GameStartedMessage", player2.ConnectionId.ToString());
         await Clients.All.SendAsync("GameStartedMessage", player1.ConnectionId.ToString());
     }

@@ -17,7 +17,7 @@ public class PlayerHub : Hub
         AllPlayers.TryAdd(player.PlayerId, player);
         playerConnections[player.PlayerId] = connectionId;
 
-        Console.WriteLine($"Player {playerName} connected with ConnectionId: {connectionId}");
+        //Console.WriteLine($"Player {playerName} connected with ConnectionId: {connectionId}");
         await BroadcastPlayers();
     }
 
@@ -33,11 +33,18 @@ public class PlayerHub : Hub
         await Clients.Caller.SendAsync("UpdatedPlayerList", new UpdatedPlayersListMessage(players));
     }
 
-    public async Task RecieveDualRequest(Guid fromId, Guid toId)
+    public async Task RecieveDualRequest(Guid fromId, Guid toId) // toid and from id are the same ???
     {
+        Console.WriteLine("\nRecieveDualRequest in PlayerHub");
         if (!AllPlayers.ContainsKey(fromId) || !AllPlayers.ContainsKey(toId))
         {
             await Clients.Caller.SendAsync("NoPlayerFound");
+            return;
+        }
+
+        if (!AllPlayers.TryGetValue(fromId, out Player? fromPlayer))
+        {
+            await Clients.Caller.SendAsync("NoOpponentFound");
             return;
         }
 
@@ -47,21 +54,27 @@ public class PlayerHub : Hub
             return;
         }
 
-        // connection id and player name are correct.
         Console.WriteLine($"Opponent found: {toPlayer.Name} with ConnectionId {toPlayer.ConnectionId}");
 
         if (toPlayer is not null)
         {
-            await Clients.Caller.SendAsync("WaitingForOpponentConfirmation", toPlayer.PlayerId);
+            await Clients.Caller.SendAsync("WaitingForOpponentConfirmation", fromId);
 
-            // These logs look correct. I am sending it to the correct person
-            Console.WriteLine("Sending a message to connectionId " + toPlayer.ConnectionId);
-            await Clients.All.SendAsync("SendRequestToOpponent", toPlayer.ConnectionId);
-            //await Clients.Client(toPlayer.ConnectionId).SendAsync("SendRequestToOpponent", "yay");
+            //Console.WriteLine("Sending a message to connectionId " + toPlayer.ConnectionId);
+            Console.WriteLine("toPlayer: " + toPlayer.ConnectionId.ToString());
+            Console.WriteLine("fromPlayer: " + fromPlayer.ConnectionId.ToString());
+            Console.WriteLine();
+
+            await Clients.All.SendAsync("SendRequestToOpponent", 
+                new MyIdAndOpponentIdMessage() {
+                    MyConnectionId= toPlayer.ConnectionId, 
+                    OpponentPlayerId=fromPlayer.PlayerId
+                }
+                );
         }
-
     }
-    
+
+
 }
 
 public class UpdatedPlayersListMessage
@@ -72,4 +85,10 @@ public class UpdatedPlayersListMessage
     {
         UpdatedPlayers = updatedPlayers;
     }
+}
+
+public record MyIdAndOpponentIdMessage
+{
+    public string MyConnectionId { get; set; }
+    public Guid OpponentPlayerId { get; set; }
 }

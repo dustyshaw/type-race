@@ -8,4 +8,5 @@ public class TypeHub : Hub
     {
         await Clients.All.SendAsync("ReceiveMessage", user, message);
     }
+
 }

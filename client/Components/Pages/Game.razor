@@ -58,13 +58,6 @@
             .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
             .Build();
 
-        connection.On<Player, Player>("GameStarted", (player1, player2) =>
-        {
-            Player1 = player1;
-            Player2 = player2;
-            StateHasChanged();
-        });
-
         await connection.StartAsync();
     }
 

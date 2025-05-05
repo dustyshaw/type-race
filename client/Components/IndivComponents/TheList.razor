@@ -3,8 +3,6 @@
 @using client.Data
 @inject NavigationManager Navigation
 @inject IHubContext<GameHub> GameHubContext
-@* @inject IHubContext<PlayerHub> PlayerHubContext *@
-@* @inject HubConnection playerHubConnection; *@
 
 
 <p><small>Connected as: @MyPlayerName</small></p>
@@ -12,8 +10,12 @@
 @if (SomeoneRequestedADual)
 {
     <div>
-        Play with opponent?
-        <button>Yes</button>
+        Play with opponent? -
+        @if (opponentPlayer is not null)
+        {
+            @opponentPlayer.ConnectionId.ToString() // This is not the correct hub connection Id!!!
+        }
+        <button @onclick="AcceptDuel">Yes</button>
     </div>
 }
 else if (WaitingForDualResponse)
@@ -33,7 +35,7 @@ else
             @if (p.Name != MyPlayerName)
             {
                 <p class="font-monospace bg-body-tertiary">
-                    @p.Name
+                    @p.Name - @p.ConnectionId.ToString()
                     <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
                 </p>
             }
@@ -56,7 +58,7 @@ else
     public string MyPlayerName { get; set; } = string.Empty;
 
     [Parameter]
-    public HubConnection playerHubConnection { get; set; }
+    public HubConnection? playerHubConnection { get; set; }
 
     private HubConnection? hubConnection;
 
@@ -65,46 +67,99 @@ else
 
     private string hubConnectionId { get; set; } = "";
 
+    private Player? opponentPlayer { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
-        // hubConnection = new HubConnectionBuilder()
-        //     .WithUrl(Navigation.ToAbsoluteUri("/playerhub"))
-        //     .Build();
         hubConnection = playerHubConnection;
 
-        hubConnection.On<string>("SendRequestToOpponent", (message) =>
+        if (hubConnection is null)
         {
-            Console.WriteLine("TheList.razor recieved sendrequesttoopponent message!");
-            if (message == hubConnectionId)
+            throw new Exception("No hub connection");
+        }
+        hubConnection.On<MyIdAndOpponentIdMessage>("SendRequestToOpponent", (message) => // receiver
+        {
+
+            if (message.MyConnectionId == hubConnectionId)
             {
-                
-            SomeoneRequestedADual = true;
-            InvokeAsync(StateHasChanged);
+                opponentPlayer = Players.FirstOrDefault(p => p.PlayerId == message.OpponentPlayerId);
+                Console.WriteLine(MyPlayerName + " finds opponentPlayer ConnectionId: " + opponentPlayer.ConnectionId);
+                SomeoneRequestedADual = true;
+                InvokeAsync(StateHasChanged);
             }
         });
-        hubConnection.On<Guid>("WaitingForOpponentConfirmation", (message) =>
+        hubConnection.On<Guid>("WaitingForOpponentConfirmation", (requestedPlayerId) => // instigator
         {
-            WaitingForDualResponse = true;
-            InvokeAsync(StateHasChanged);
+            var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
+
+            if (requestedPlayerId == me.PlayerId)
+            {
+                WaitingForDualResponse = true;
+                InvokeAsync(StateHasChanged);
+            }
+        });
+
+
+
+        var gamHubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        await gamHubConnection.StartAsync();
+        gamHubConnection.On<string>("GameStartedMessage", (playerConnectionId) => // both ?? Why is it not getting here?
+        {
+            Console.WriteLine("GameStartedMessage Reciived: " + playerConnectionId);
+            if (playerConnectionId == hubConnectionId)
+            {
+                Navigation.NavigateTo("/game");
+            }
         });
 
 
         hubConnectionId = hubConnection.ConnectionId.ToString();
-        Console.WriteLine(MyPlayerName + " ConnectionId is: " + hubConnection.ConnectionId.ToString());
+        Console.WriteLine(MyPlayerName + " ConnectionId is: " + hubConnection.ConnectionId.ToString() + "\n");
     }
 
 
-    private async Task OnJoustClick(Player player)
+    private async Task OnJoustClick(Player player) // instigator
     {
-        var opponent = Players.FirstOrDefault(p => p.PlayerId == player.PlayerId);
+        var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
 
-
-        if (hubConnection is not null && opponent is not null)
+        if (hubConnection is not null && me is not null)
         {
-            await hubConnection.SendAsync("RecieveDualRequest", player.PlayerId, opponent.PlayerId);
+            await hubConnection.SendAsync("RecieveDualRequest", me.PlayerId, player.PlayerId);
+        }
+    }
+
+    private async Task AcceptDuel() // receiver
+    {
+        var gamHubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/gamehub"))
+            .Build();
+
+        await gamHubConnection.StartAsync();
+
+        Console.WriteLine(opponentPlayer.Name ?? "WARNING: No opponent name found...");
+        Console.WriteLine(WaitingForDualResponse + " waiting...");
+
+        if (opponentPlayer is not null && hubConnectionId is not null && SomeoneRequestedADual)
+        {
+
+            var player1 = Players.FirstOrDefault(p => p.PlayerId == opponentPlayer.PlayerId);
+            var player2 = Players.FirstOrDefault(p => p.ConnectionId == hubConnectionId);
+            var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
+            await gamHubConnection.SendAsync("StartGameRequest", player1, player2);
+
+            Navigation.NavigateTo("/game");
+        }
+        else
+        {
+            Console.WriteLine("ERROR: failed to start the game. OpponentPlayer or Player were null.");
         }
     }
 
     public bool IsConnected =>
         hubConnection?.State == HubConnectionState.Connected;
 }
+
+

@@ -30,6 +30,8 @@ builder.Services.AddResponseCompression(opts =>
 });
 
 
+builder.Services.AddSingleton<GameManager>();
+
 var app = builder.Build();
 
 app.UseResponseCompression();

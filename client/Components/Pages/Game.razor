@@ -1,4 +1,4 @@
-﻿@page "/game/{MyPlayerId}"
+﻿@page "/game/{GameId}/{MyPlayerId}"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.SignalR.Client
 @using client.Data
@@ -7,17 +7,18 @@
 
 
 <hr />
-@if(MyPlayerId is not null)
+@if (MyPlayerId is not null)
 {
     @MyPlayerId.ToString()
 }
 <hr />
 
-<div class="d-flex flex-row justify-content-between" style="max-width: 900px;">
-    <img src="/left-blue-horse-final.png" style="width: 150px; position: relative; left: @HorsePositionPx;"/>
-    <img src="/right-blue-horse-final.png" style="width: 150px;"/>
-</div>
-
+<center>
+    <div class="d-flex flex-row justify-content-between" style="max-width: 900px;">
+        <img src="/left-blue-horse-final.png" style="width: 150px; position: relative; left: @HorsePositionPx;" />
+        <img src="/right-blue-horse-final.png" style="width: 150px; position: relative; right: @OpponentHorsePositionPx;" />
+    </div>
+</center>
 <div class="game-container">
     <p>@((MarkupString)GetHighlightedText())</p>
     <p>
@@ -58,15 +59,21 @@
     private int TotalCharacters => TextToType.Length;
     private string HorsePositionPx => $"{CorrectCount * 5}px"; // shorthand for get only property
 
+    private int OpponentCorrectCount = 0;
+    private string OpponentHorsePositionPx => $"{OpponentCorrectCount * 5}px";
+
     protected override async Task OnInitializedAsync()
     {
         var connection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
             .Build();
 
-        connection.On<string>("GameTick", (player1) =>
+        connection.On<GameState>("UpdatedGameState", (state) =>
         {
-            StateHasChanged();
+            if (state.PlayerId == MyPlayerId)
+            {
+                OpponentCorrectCount = state.Player2Progress;
+            }
         });
 
         await connection.StartAsync();
@@ -87,7 +94,7 @@
         }).Aggregate((current, next) => current + next));
     }
 
-    private void OnUserInputChanged(ChangeEventArgs e)
+    private async Task OnUserInputChanged(ChangeEventArgs e)
     {
         UserInput = e.Value?.ToString() ?? string.Empty;
         CorrectCount = UserInput.Zip(TextToType, (typedChar, originalChar) => typedChar == originalChar).Count(x => x);
@@ -96,8 +103,22 @@
 
         if (hubConnection is not null)
         {
-            hubConnection.SendAsync("PlayerTypeChange");
+            await hubConnection.SendAsync("PlayerTypeChange");
         }
+
+        var connection = new HubConnectionBuilder()
+           .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
+           .Build();
+
+        await connection.StartAsync();
+
+        GameStateUpdateRequest request = new()
+            {
+                PlayerId = MyPlayerId,
+                Progress = CorrectCount
+            };
+
+        await connection.SendAsync("RecieveUpdatedGameState", request);
     }
 
     public bool IsConnected =>

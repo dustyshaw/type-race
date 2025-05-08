@@ -35,7 +35,7 @@ else
             @if (p.Name != MyPlayerName)
             {
                 <p class="font-monospace bg-body-tertiary">
-                    @p.Name - @p.ConnectionId.ToString()
+                    @p.Name
                     <button class="btn btn-outline-primary font-monospace" @onclick="() => OnJoustClick(p)">Joust</button>
                 </p>
             }
@@ -45,7 +45,6 @@ else
         <h2 class="jacquard-24-regular text-center mt-4">Currently Clashing</h2>
         <p class="text-center text-secondary">Players currently jousting</p>
         <p>none</p>
-
     </div>
 }
 
@@ -145,13 +144,13 @@ else
 
         if (opponentPlayer is not null && hubConnectionId is not null && SomeoneRequestedADual)
         {
-
             var player1 = Players.FirstOrDefault(p => p.PlayerId == opponentPlayer.PlayerId);
             var player2 = Players.FirstOrDefault(p => p.ConnectionId == hubConnectionId);
             var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
-            await gamHubConnection.SendAsync("StartGameRequest", player1, player2);
+            var gameId = Guid.NewGuid().ToString();
+            await gamHubConnection.SendAsync("StartGameRequest", gameId, player1, player2);
 
-            Navigation.NavigateTo($"/game/{me.PlayerId}");
+            Navigation.NavigateTo($"/game/{gameId}/{me.PlayerId}");
         }
         else
         {

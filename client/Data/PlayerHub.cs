@@ -33,8 +33,11 @@ public class PlayerHub : Hub
         await Clients.Caller.SendAsync("UpdatedPlayerList", new UpdatedPlayersListMessage(players));
     }
 
-    public async Task RecieveDualRequest(Guid fromId, Guid toId) // toid and from id are the same ???
+    //public async Task RecieveDualRequest(Guid fromId, Guid toId) // toid and from id are the same ???
+    public async Task RecieveDualRequest(DuelRequest request)
     {
+        var fromId = request.MyPlayerId;
+        var toId = request.OpponentPlayerId;
         Console.WriteLine("\nRecieveDualRequest in PlayerHub");
         if (!AllPlayers.ContainsKey(fromId) || !AllPlayers.ContainsKey(toId))
         {
@@ -65,10 +68,12 @@ public class PlayerHub : Hub
             Console.WriteLine("fromPlayer: " + fromPlayer.ConnectionId.ToString());
             Console.WriteLine();
 
-            await Clients.All.SendAsync("SendRequestToOpponent", 
-                new MyIdAndOpponentIdMessage() {
-                    MyConnectionId= toPlayer.ConnectionId, 
-                    OpponentPlayerId=fromPlayer.PlayerId
+            await Clients.All.SendAsync("SendRequestToOpponent",
+                new MyIdAndOpponentIdMessage()
+                {
+                    MyConnectionId = toPlayer.ConnectionId,
+                    OpponentPlayerId = fromPlayer.PlayerId,
+                    GameId = request.GameId
                 }
                 );
         }
@@ -89,6 +94,15 @@ public class UpdatedPlayersListMessage
 
 public record MyIdAndOpponentIdMessage
 {
+    public string GameId { get; set; }
     public string MyConnectionId { get; set; }
     public Guid OpponentPlayerId { get; set; }
+}
+
+public record DuelRequest
+{
+    public Guid MyPlayerId { get; set; }
+    public Guid OpponentPlayerId { get; set; }
+    public string MyConnectionId { get; set; } = "";
+    public string GameId { get; set; } = "";
 }

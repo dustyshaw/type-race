@@ -1,4 +1,6 @@
-﻿namespace client.Data;
+﻿using Microsoft.Extensions.FileProviders;
+
+namespace client.Data;
 
 public class GameManager
 {
@@ -13,6 +15,8 @@ public class GameManager
             PlayerOne = player1,
             PlayerTwo = player2
         };
+
+        Console.WriteLine("GameManager Created Game with GameId: " + gameId);
     }
 
     public Game GetGame(string gameId)
@@ -24,6 +28,12 @@ public class GameManager
     public bool UpdateProgress(string gameId, string playerId, int progress)
     {
         _games.TryGetValue(gameId, out var game);
+
+        if (game is null)
+        {
+            Console.WriteLine("ERROR: Game was not found when attempting to update game state in GameManager.cs");
+            return false;
+        }
 
         if (playerId == game.PlayerOne.PlayerId.ToString())
         {

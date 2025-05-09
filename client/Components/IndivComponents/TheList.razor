@@ -10,7 +10,7 @@
 @if (SomeoneRequestedADual)
 {
     <div style="background-color: #4a4a4a; color: black;">
-        Joust with 
+        Joust with
         @if (opponentPlayer is not null)
         {
             @opponentPlayer.Name
@@ -68,6 +68,8 @@ else
 
     private Player? opponentPlayer { get; set; }
 
+    private string GameIdSentFromInitiator { get; set; } = "";
+
     protected override async Task OnInitializedAsync()
     {
         hubConnection = playerHubConnection;
@@ -84,6 +86,8 @@ else
                 opponentPlayer = Players.FirstOrDefault(p => p.PlayerId == message.OpponentPlayerId);
                 Console.WriteLine(MyPlayerName + " finds opponentPlayer ConnectionId: " + opponentPlayer.ConnectionId);
                 SomeoneRequestedADual = true;
+                GameIdSentFromInitiator = message.GameId;
+                Console.WriteLine("Someone requested to duel in gameid: " + GameIdSentFromInitiator.ToString());
                 InvokeAsync(StateHasChanged);
             }
         });
@@ -105,13 +109,13 @@ else
             .Build();
 
         await gamHubConnection.StartAsync();
-        gamHubConnection.On<string>("GameStartedMessage", (playerConnectionId) => // both ?? Why is it not getting here?
-        {
+        gamHubConnection.On<string>("GameStartedMessage", (playerConnectionId) => {
             Console.WriteLine("GameStartedMessage Reciived: " + playerConnectionId);
             if (playerConnectionId == hubConnectionId)
             {
                 var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
-                Navigation.NavigateTo($"/game/{me.PlayerId}");
+                //var gameId = Guid.NewGuid().ToString(); // These game Ids are not the same game id. How do i fix that?
+                Navigation.NavigateTo($"/game/{GameIdSentFromInitiator}/{me.PlayerId}");
             }
         });
 
@@ -127,7 +131,18 @@ else
 
         if (hubConnection is not null && me is not null)
         {
-            await hubConnection.SendAsync("RecieveDualRequest", me.PlayerId, player.PlayerId);
+            var gameId = Guid.NewGuid();
+            GameIdSentFromInitiator = gameId.ToString();
+
+            var duelRequest = new DuelRequest
+                {
+                    MyConnectionId = me.ConnectionId,
+                    MyPlayerId = me.PlayerId,
+                    OpponentPlayerId = player.PlayerId,
+                    GameId = gameId.ToString()
+                };
+            await hubConnection.SendAsync("RecieveDualRequest", duelRequest);
+            // await hubConnection.SendAsync("RecieveDualRequest", me.PlayerId, player.PlayerId);
         }
     }
 
@@ -147,10 +162,10 @@ else
             var player1 = Players.FirstOrDefault(p => p.PlayerId == opponentPlayer.PlayerId);
             var player2 = Players.FirstOrDefault(p => p.ConnectionId == hubConnectionId);
             var me = Players.FirstOrDefault(player => player.ConnectionId == hubConnectionId);
-            var gameId = Guid.NewGuid().ToString();
-            await gamHubConnection.SendAsync("StartGameRequest", gameId, player1, player2);
+            await gamHubConnection.SendAsync("StartGameRequest", GameIdSentFromInitiator, player1, player2);
 
-            Navigation.NavigateTo($"/game/{gameId}/{me.PlayerId}");
+            
+            Navigation.NavigateTo($"/game/{GameIdSentFromInitiator}/{me.PlayerId}");
         }
         else
         {

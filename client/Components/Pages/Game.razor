@@ -12,6 +12,7 @@
     @MyPlayerId.ToString()
 }
 <hr />
+<p>@OpponentHorsePositionPx</p>
 
 <center>
     <div class="d-flex flex-row justify-content-between" style="max-width: 900px;">
@@ -46,6 +47,9 @@
     // Move players according to game state
 
     [Parameter]
+    public string GameId { get; set; } = "";
+
+    [Parameter]
     public string MyPlayerId { get; set; } = "";
 
     private HubConnection? hubConnection;
@@ -64,19 +68,22 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var connection = new HubConnectionBuilder()
+        hubConnection = new HubConnectionBuilder()
             .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
             .Build();
 
-        connection.On<GameState>("UpdatedGameState", (state) =>
+        hubConnection.On<GameState>("UpdatedGameState", (state) =>
         {
             if (state.PlayerId == MyPlayerId)
             {
-                OpponentCorrectCount = state.Player2Progress;
+                OpponentCorrectCount = state.OpponentProgress;
+                Console.WriteLine("GAME.RAZOR got a game state Opponent Count = " + OpponentCorrectCount.ToString());
             }
         });
 
-        await connection.StartAsync();
+        await hubConnection.StartAsync();
+
+        await hubConnection.SendAsync("JoinGame", GameId);
     }
 
     private string GetHighlightedText()
@@ -101,24 +108,16 @@
 
         StateHasChanged();
 
-        if (hubConnection is not null)
+        if (hubConnection is not null && hubConnection.State == HubConnectionState.Connected)
         {
-            await hubConnection.SendAsync("PlayerTypeChange");
+            GameStateUpdateRequest request = new()
+                {
+                    PlayerId = MyPlayerId,
+                    Progress = CorrectCount
+                };
+
+            await hubConnection.SendAsync("RecieveUpdatedGameState", GameId, request);
         }
-
-        var connection = new HubConnectionBuilder()
-           .WithUrl(NavigationManager.ToAbsoluteUri("/gamehub"))
-           .Build();
-
-        await connection.StartAsync();
-
-        GameStateUpdateRequest request = new()
-            {
-                PlayerId = MyPlayerId,
-                Progress = CorrectCount
-            };
-
-        await connection.SendAsync("RecieveUpdatedGameState", request);
     }
 
     public bool IsConnected =>
